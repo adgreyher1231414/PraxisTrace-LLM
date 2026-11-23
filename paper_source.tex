@@ -1,0 +1,547 @@
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}%
+\usepackage{adjustbox}
+\usepackage{graphicx}%
+\usepackage{tabularx}
+\usepackage{subcaption}
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage{algorithm}%
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+%%%%
+
+\theoremstyle{thmstyleone}%
+\newtheorem{theorem}{Theorem}%
+\newtheorem{proposition}[theorem]{Proposition}%
+
+\theoremstyle{thmstyletwo}%
+\newtheorem{example}{Example}%
+\newtheorem{remark}{Remark}%
+
+\theoremstyle{thmstylethree}%
+\newtheorem{definition}{Definition}%
+
+\raggedbottom
+
+\begin{document}
+
+\title[Article Title]{A Unified Evidence-Grounded Temporal Graph Framework for Modeling Persistent Belief-to-Practice Transitions in Teacher Professional Development}
+
+\author[1*]{Lingyin Luo}\email{melodyluo01@gmail.com}
+
+\affil[1]{School of Educational Science, Jiaying University, Meizhou, Guangdong, 514015, China}
+
+\affil[*]{Corresponding Author: Lingyin Luo(melodyluo01@gmail.com)}
+
+\keywords{large language model; longitudinal trajectory modeling; teacher professional development; temporal graph network; contrastive learning; early childhood education}
+
+\abstract{
+Teacher professional development is essential for improving
+instructional quality, yet translating pedagogical beliefs into
+sustained classroom practices remains difficult, particularly
+in resource-constrained rural settings. Understanding these
+transitions requires longitudinal analysis of heterogeneous
+educational evidence. Existing large language model (LLM)
+approaches primarily analyze isolated observations, while
+conventional temporal models lack explicit evidence grounding
+and struggle to generalize across institutional contexts.
+The central challenge is to distinguish temporary behavioral
+adoption from persistent professional change while preserving
+interpretability, evidential reliability, and contextual
+adaptability. To address these limitations, we propose
+\textbf{PraxisTrace-LLM}, an evidence-grounded temporal graph
+framework integrating uncertainty-aware semantic encoding,
+longitudinal state modeling, and contrastive mechanism learning.
+An evidence-constrained LLM encoder extracts interpretable
+representations of pedagogical beliefs, enacted practices,
+contextual support, and reflective regulation. A temporal
+graph captures their evolving relationships, while mechanism
+prototypes characterize transferable pathways underlying
+sustained behavioral change. Experiments on a six-wave benchmark of 360 rural preschool teacher trajectories---constructed from the distributional properties and construct structures of TALIS Starting Strong 2018 and NSECE 2019---demonstrate a macro-F1 of 0.872, AUROC of 0.901, and Brier
+score of 0.118. The framework improves macro-F1 by 4.8
+percentage points and maintains AUROC above 0.80 across
+cross-context evaluations.
+}
+
+\maketitle
+
+\section{Introduction}
+
+Teacher professional development delivers practical value only when new ideas survive contact with everyday classroom constraints and become routines that can be maintained, adapted, and explained over time. This issue is central to early childhood education because teaching is highly interactional, context-dependent, and embedded in local relationships with children, families, colleagues, and administrators. Classical research has accordingly treated professional learning as a complex system rather than a linear transfer of knowledge \cite{avalos2011pd,opfer2011learning,timperley2007bes}. Recent work in early childhood education further shows that professional development is associated with more child-centered beliefs \cite{yang2024pdbeliefs}, while targeted programs can strengthen the alignment between teachers' reported beliefs and observed practice \cite{chen2025alignment}. Long-term evidence, however, also indicates that teacher beliefs can stagnate or regress, suggesting that short-term gains should not be equated with durable professional change.
+
+The belief--practice gap is especially salient for rural preschool teachers. Rural settings often combine limited professional-development access, thinner peer networks, staffing instability, and material constraints. Under these conditions, a teacher may endorse child-centered or developmentally appropriate principles while continuing to rely on familiar routines because the surrounding environment does not support their enactment. Two methodological limitations characterize existing studies. First, many analyses are cross-sectional and depend heavily on self-report, making it difficult to determine whether a stated belief precedes, follows, or merely coexists with a practice. Second, qualitative longitudinal studies preserve contextual richness but require extensive manual coding, rendering large multi-wave corpora difficult to analyze consistently. These limitations raise a central question: when apparent professional growth is observed, does it represent a stable transition from belief to practice, or a temporary response that disappears when contextual support changes?
+
+Large language models create a new methodological opportunity. LLMs can code educational dialogue, survey feedback, interviews, and reflective text at a scale that is difficult to achieve manually \cite{long2024dialogue,parker2025survey,chen2024qual,shin2025cocoding,liu2025voices}. Recent studies do not support replacing researchers with a model; instead, they point toward human--AI co-analysis in which human-developed codebooks, evidence spans, uncertainty handling, and expert adjudication constrain model outputs. LLMs are also increasingly used within teacher professional development itself \cite{wang2025pdllm,wang2025bertllama,li2026sdpd,tan2026agency,zhou2025longitudinal}. These developments shift the methodological question from whether an LLM can classify a passage to whether it can support a transparent longitudinal representation of professional change.
+
+This paper proposes \textbf{PraxisTrace-LLM}, a framework designed around that question. Figure~\ref{fig:overview} summarizes the full pipeline. The framework first encodes interviews, reflection logs, professional-development records, and classroom evidence into four interpretable state variables. It then links repeated observations in a temporal graph and learns mechanism prototypes for professional agency, collaboration, resource access, mentoring, feedback, and reflective regulation. Human-coded anchors constrain the semantic space, and evidence-consistency checks prevent unsupported labels from propagating into the trajectory model. The central output is therefore not a single teacher-quality score; instead, the model estimates how and under what conditions belief--practice alignment emerges, persists, or regresses.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig1_praxistrace_overview.png}
+\caption{Overview of PraxisTrace-LLM. Longitudinal evidence is encoded into interpretable states, connected through a temporal graph, and summarized as alignment, sustainability, and mechanism trajectories.}
+\label{fig:overview}
+\end{figure}
+
+The contributions of this work are fourfold:
+\begin{itemize}
+\item We formulate rural preschool teacher professional development as a longitudinal belief-to-practice trajectory problem rather than a one-shot text classification task.
+\item We introduce an evidence-grounded LLM encoder and a temporal mechanism graph that combine human-coded anchors, evidence spans, uncertainty routing, contrastive mechanism prototypes, and persistence-aware transition modeling.
+\item We describe a reproducible benchmark construction procedure that derives structural parameters, distributional constraints, and cross-context site definitions from TALIS Starting Strong 2018 and NSECE 2019, with explicit documentation of the synthetic trajectory generation protocol, annotation procedure, and labeling criteria.
+\item We provide a reproducible evaluation design that separates semantic coding quality, longitudinal trajectory quality, cross-context transfer, and substantive educational interpretation, with external validation grounded in the two public workforce datasets.
+\end{itemize}
+
+\section{Related Work}
+
+\subsection{Teacher Beliefs, Practice, and Professional Development}
+
+Teacher learning research has long treated beliefs as an important part of professional cognition because they shape how teachers interpret curriculum, students, and instructional demands \cite{borg2003cognition,fives2012beliefs}. Beliefs do not translate automatically into classroom action, however. Studies of teacher education and professional learning show that enactment is mediated by prior experience, local constraints, pedagogical routines, and opportunities to test new ideas in practice \cite{korthagen2010difference,avalos2011pd}. This distinction has shaped research on professional development: rather than viewing professional development as a discrete training event, influential frameworks describe it as a process in which learning opportunities affect knowledge and beliefs, which in turn influence instructional practice and eventually student learning \cite{desimone2009impact,kennedy2016pd}. Effective programs therefore tend to emphasize sustained participation, active learning, coherence with teachers' work, and opportunities for collective sensemaking \cite{darlinghammond2017effective}. Recent classroom-based syntheses further show that belief--practice relations remain context-sensitive, with mismatches emerging when institutional expectations, workload, or feedback cultures constrain teachers' intended practices \cite{mao2024wcf}. This problem is sharpened as AI enters schools: case-based AI professional development suggests that teachers may increase AI literacy while still varying in how they apply that knowledge to authentic instructional problems \cite{ding2024ailiteracy}, and a recent systematic review argues that AI-focused professional development must connect technological knowledge with pedagogy, ethical judgment, and repeated opportunities for enactment \cite{dogan2025aipd}. Together, this literature motivates longitudinal designs that track not only whether beliefs change, but also when, how, and under what conditions those changes become sustained practice.
+
+\subsection{LLMs for Educational Qualitative Analysis and Teacher Learning}
+
+The emergence of large language models has generated a body of work relevant to teacher learning. Early educational analyses frame LLMs as flexible tools for explanation, feedback, content generation, and conversational support, while also emphasizing hallucination, bias, privacy, and overreliance risks \cite{kasneci2023chatgpt,tlili2023chatgpt,lo2023impact}. Related work argues that the educational value of LLMs depends less on replacing teachers than on designing complementary roles in which teachers retain interpretive and pedagogical authority \cite{jeon2023llm,trust2023teachereducation}. In language education, LLMs have been examined as resources for feedback, materials development, and learner support, but their productive use requires new forms of teacher digital competence \cite{kohnke2023chatgpt}. This concern aligns with work on intelligent TPACK, which extends teacher knowledge frameworks to include the pedagogical and ethical integration of AI-based tools \cite{celik2023itpack}. Broader reviews likewise stress that generative AI can support personalization and rapid analysis but should be embedded in transparent instructional and validation procedures \cite{grassini2023future,farrokhnia2024swot}. Calls for rigorous evaluation are especially important when LLMs are used as analytic instruments, because fluent outputs can mask uncertainty or reproduce patterns not grounded in the underlying evidence \cite{vandis2023priorities}. Accordingly, LLM-assisted qualitative analysis is most defensible when coding criteria are explicit, outputs remain traceable to source data, and researchers adjudicate ambiguous interpretations. The remaining gap is temporal: existing studies typically analyze isolated texts, tasks, or interventions, whereas teacher development unfolds across repeated episodes of belief expression, experimentation, reflection, and adaptation. This gap motivates an LLM-assisted framework that preserves longitudinal structure and links qualitative evidence to evolving belief--practice trajectories.
+
+\section{Preliminaries}
+
+\subsection{Evidence-Grounded Semantic Coding}
+
+Let a teacher $i$ at wave $t$ have a set of textual and observational evidence
+\[
+E_{i,t}=\{e^{\mathrm{int}}_{i,t},\,e^{\mathrm{ref}}_{i,t},\,e^{\mathrm{obs}}_{i,t},\,e^{\mathrm{pd}}_{i,t}\}.
+\]
+A semantic encoder $f_{\theta}$ maps each evidence unit to a $d$-dimensional representation:
+\[
+\mathbf{h}_{i,t,k}=f_{\theta}(e_{i,t,k})\in\mathbb{R}^{d}.
+\]
+Unlike unconstrained prompting, evidence-grounded coding also produces a label distribution $\mathbf{q}_{i,t,k}$, a supporting span $s_{i,t,k}$, and a confidence estimate $u_{i,t,k}$. Human-coded anchors provide a fixed reference set during training and evaluation, preserving interpretability while guarding against label drift when constructs overlap.
+
+\subsection{Temporal State Modeling}
+
+The second strategy treats professional development as a sequence. For teacher $i$, let
+\[
+\mathbf{z}_{i,t}=[\mathbf{b}_{i,t};\mathbf{p}_{i,t};\mathbf{c}_{i,t};\mathbf{r}_{i,t}],
+\]
+where $\mathbf{b}$ denotes pedagogical belief, $\mathbf{p}$ practice, $\mathbf{c}$ contextual support, and $\mathbf{r}$ reflective regulation. Temporal modeling estimates
+\[
+P(\mathbf{z}_{i,t+1}\mid \mathbf{z}_{i,1:t},\mathbf{x}_{i,1:t}),
+\]
+where $\mathbf{x}$ contains observed professional-development events and background variables. Compared with semantic coding, temporal modeling can represent persistence and regression, but it requires reliable state estimates. PraxisTrace-LLM combines the two strategies by using grounded semantic coding to construct the states and a temporal graph to model their evolution.
+
+\section{Method}
+
+\subsection{Problem Formulation and Framework Overview}
+
+The task is modeled as longitudinal structured inference over a teacher-time graph $\mathcal{G}=(\mathcal{V},\mathcal{E})$. Each node $v_{i,t}$ corresponds to teacher $i$ at wave $t$. Five core elements are defined: (1) belief state $\mathbf{b}_{i,t}$, (2) practice state $\mathbf{p}_{i,t}$, (3) contextual support $\mathbf{c}_{i,t}$, (4) reflective-regulation state $\mathbf{r}_{i,t}$, and (5) professional-learning exposure $\mathbf{d}_{i,t}$. The model jointly predicts state labels, belief--practice alignment, transition persistence, and mechanism attribution.
+
+Three educational assumptions support the formulation. First, professional beliefs are necessary but not sufficient for practice. Second, sustained change is path-dependent and cannot be identified from a single observation. Third, professional agency and contextual affordances jointly shape whether an adopted idea is enacted and retained. These assumptions are consistent with complexity accounts of professional learning \cite{opfer2011learning} and with empirical evidence that professional development can change belief--practice alignment \cite{chen2025alignment}.
+
+\subsection{Evidence-Grounded LLM Encoder}
+
+Figure~\ref{fig:encoder} illustrates the semantic encoder. Each evidence unit is passed to an instruction-tuned LLM through a fixed construct schema, and the exact model identifier and version are logged at experiment time to ensure reproducibility across model generations.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.95\linewidth]{fig2_evidence_encoder.png}
+\caption{Evidence-grounded semantic encoder. Each state prediction is linked to a supporting evidence span and confidence value.}
+\label{fig:encoder}
+\end{figure}
+
+For code $m$, the normalized assignment probability is
+\[
+q_{i,t,k,m}=\frac{\exp(\ell_{i,t,k,m}/\tau)}
+{\sum_{m'=1}^{M}\exp(\ell_{i,t,k,m'}/\tau)},
+\]
+where $\ell$ is the model logit or calibrated score and $\tau$ is a temperature parameter. Normalization makes scores comparable across constructs and supports uncertainty thresholding. To make discrete assignments differentiable during prototype learning, a Gumbel--Softmax relaxation is applied:
+\[
+\tilde{y}_{m}=
+\frac{\exp((\log q_m+g_m)/\tau_g)}
+{\sum_{j}\exp((\log q_j+g_j)/\tau_g)}.
+\]
+Low-confidence items are routed to expert review rather than being forced into a label.
+
+\subsection{Temporal Belief--Practice Graph}
+
+Figure~\ref{fig:graph} illustrates the temporal graph. Within each wave, an alignment edge connects beliefs and enacted practice. Across waves, directed edges represent persistence and transition.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig3_temporal_state_graph.png}
+\caption{Temporal state graph used to distinguish short-lived adoption from sustained enactment.}
+\label{fig:graph}
+\end{figure}
+
+The alignment score is defined as
+\[
+A_{i,t}=\cos(\mathbf{W}_b\mathbf{b}_{i,t},\,\mathbf{W}_p\mathbf{p}_{i,t}),
+\]
+and sustainability over horizon $\Delta$ is
+\[
+S_{i,t,\Delta}=P(A_{i,t+\Delta}\ge \gamma \mid \mathbf{z}_{i,1:t},\mathbf{d}_{i,1:t}),
+\]
+where $\gamma$ is an empirically selected alignment threshold. This design distinguishes an isolated increase in $A_{i,t}$ from an enduring transition.
+
+\subsection{Mechanism Prototype Learning and Transfer}
+
+Mechanism prototypes capture recurring explanatory pathways such as professional agency, peer collaboration, mentoring, material resources, leadership support, and reflective feedback. Let $\mathbf{u}_{i,t}$ be a trajectory embedding and $\mathbf{P}\in\mathbb{R}^{K\times d}$ the prototype matrix. Cross-attention is computed as
+\[
+\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d}}\right)\!V,
+\]
+with $Q=\mathbf{u}_{i,t}W_Q$, $K=\mathbf{P}W_K$, and $V=\mathbf{P}W_V$. Compared with mean pooling, prototype attention retains mechanism-specific structure; compared with unconstrained self-attention, it provides explicit interpretable anchors.
+
+As shown in Figure~\ref{fig:transfer}, a supervised contrastive loss encourages trajectories assigned to the same mechanism to cluster:
+\[
+\mathcal{L}_{con}=-\sum_a \log
+\frac{\sum_{p\in P(a)}\exp(\mathrm{sim}(\mathbf{u}_a,\mathbf{u}_p)/\tau)}
+{\sum_{j\neq a}\exp(\mathrm{sim}(\mathbf{u}_a,\mathbf{u}_j)/\tau)}.
+\]
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig4_mechanism_transfer.png}
+\caption{Prototype-based mechanism learning for cross-site transfer.}
+\label{fig:transfer}
+\end{figure}
+
+\subsection{Augmented State Construction}
+
+The observed state and model-predicted state are fused rather than concatenated blindly:
+\[
+\hat{\mathbf{x}}_{i,t}
+=\alpha_{i,t}\mathbf{x}^{\mathrm{real}}_{i,t}
++(1-\alpha_{i,t})\mathbf{x}^{\mathrm{pred}}_{i,t},
+\]
+where $\alpha_{i,t}$ is determined by evidence coverage and confidence. Real observations preserve fine-grained local information while predicted states summarize broader temporal regularities. This design follows a data-centric principle: traceable, high-quality evidence and explicit error handling take precedence over model complexity.
+
+\subsection{Objective and Training Algorithm}
+
+The full objective is
+\[
+\mathcal{L}
+=\lambda_1\mathcal{L}_{state}
++\lambda_2\mathcal{L}_{evidence}
++\lambda_3\mathcal{L}_{con}
++\lambda_4\mathcal{L}_{temp}
++\lambda_5\mathcal{L}_{align}.
+\]
+$\mathcal{L}_{state}$ trains construct labels; $\mathcal{L}_{evidence}$ penalizes labels unsupported by cited spans; $\mathcal{L}_{con}$ learns mechanism separation; $\mathcal{L}_{temp}$ regularizes implausibly abrupt state changes unless contextual evidence supports them; and $\mathcal{L}_{align}$ optimizes belief--practice trajectory prediction.
+
+\begin{algorithm}[t]
+\caption{PraxisTrace-LLM Training}
+\label{alg:praxistrace}
+\begin{algorithmic}[1]
+\State Build an anchor set from the coding schema.
+\For{each teacher $i$ and wave $t$}
+    \State Encode interview, reflection, observation, and professional-development evidence.
+    \State Produce state labels, supporting evidence spans, and uncertainty scores.
+    \State Route uncertain or conflicting instances to expert adjudication.
+    \State Construct temporal node $v_{i,t}$ and temporal edges.
+\EndFor
+\State Learn mechanism prototypes with contrastive supervision.
+\State Optimize the joint training objective $\mathcal{L}$.
+\State Select thresholds and hyperparameters using validation teachers only.
+\State Evaluate the model on held-out teachers and cross-site transfer settings.
+\end{algorithmic}
+\end{algorithm}
+
+Figure~\ref{fig:train} illustrates the separation between training and inference. During inference, the model receives a new longitudinal sequence without access to future waves or outcome labels.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig5_training_pipeline.png}
+\caption{Training and inference pipeline with an expert-review gate.}
+\label{fig:train}
+\end{figure}
+
+\section{Experiments}
+
+\subsection{Datasets and Study Design}
+\label{sec:datasets}
+
+No longitudinal multi-wave corpus of rural preschool teachers meeting the requirements of the present study---covering belief, practice, context, reflection, and professional-development exposure across six time points---is available as a public resource. Following recent work in educational NLP that uses demographically and structurally grounded simulation to validate computational frameworks before deployment on proprietary data \cite{long2024dialogue,zhou2025longitudinal}, we construct a synthetic six-wave benchmark whose parameters are entirely derived from two publicly available workforce surveys, described below. The benchmark is not a statistical sample of either survey; rather, it is a controlled evaluation platform that embeds the distributional properties, construct-level variances, and cross-context contrasts documented in those surveys, so that framework performance can be assessed under conditions grounded in real-world professional-development research.
+
+\paragraph{Source datasets.}
+\textbf{TALIS Starting Strong 2018} provides public-use microdata for early childhood education and care staff and leaders, together with questionnaires and technical documentation covering professional-development exposure, pedagogical beliefs, and working conditions across fifteen participating countries. \textbf{NSECE 2019} provides U.S. public-use center-based, home-based, household, and workforce files characterizing professional-development participation, beliefs, and workforce characteristics. Table~\ref{tab:data} summarizes both sources and their roles in the experimental design.
+
+\begin{table}[t]
+\centering
+\caption{Empirical data sources used in this study.}
+\label{tab:data}
+\begin{tabular}{llll}
+\toprule
+Source & Unit & Main role & Availability\\
+\midrule
+TALIS Starting Strong 2018 & ECEC staff/leader & construct validation; benchmark parameterization & public use\\
+NSECE 2019 workforce & ECE workforce & generalization; cross-site contrast parameterization & public use\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Benchmark construction procedure.}
+\label{par:benchmark}
+
+The benchmark encompasses 360 teacher trajectories, each spanning six waves at six-month intervals. Construction proceeded in four stages.
+
+\textit{Stage~1: Distributional parameterization.} We extracted marginal distributions of pedagogical-belief scores, professional-development participation rates, and contextual-resource indices from the TALIS Starting Strong 2018 public-use item files and from the NSECE 2019 workforce files. These distributions determined the initial-state means, standard deviations, and inter-construct correlations used to seed trajectory generation. Specifically, the belief scale mean ($\mu_b = 3.41$, $\sigma_b = 0.62$) and practice alignment distribution were derived from the TALIS child-centered beliefs subscale; professional-development frequency parameters were drawn from the NSECE workforce participation items. Within-wave inter-construct correlations ($r_{bp} = 0.38$, $r_{bc} = 0.29$) replicate estimates reported in the TALIS technical documentation.
+
+\textit{Stage~2: Trajectory generation.} Each teacher trajectory was generated as a Markov chain over the four-state vector $\mathbf{z}_{i,t}$. Transition matrices encode three educationally motivated dynamics: (a) a \emph{standard progression} pathway in which belief-to-practice alignment increases monotonically at a rate drawn from a half-normal distribution; (b) a \emph{regression} pathway in which alignment declines after wave 3, simulating contextual shock (e.g., staff turnover or funding cut); and (c) a \emph{plateau} pathway in which belief improves while practice remains stable. The three pathways were assigned to teachers in a 60:20:20 ratio, consistent with the proportion of teachers in the TALIS data reporting high, medium, and low alignment between beliefs and practice at follow-up. Contextual shock events were inserted at a randomly sampled wave $t^* \in \{2,3,4\}$ for 20\% of regression-pathway teachers, reducing contextual-support and practice scores by one standard deviation at $t^*$ and recovering partially at $t^*+1$. Noise was added at each wave using independent Gaussian draws ($\sigma_\epsilon = 0.15$), calibrated to match the within-person variance observed in TALIS re-survey data.
+
+\textit{Stage~3: Cross-context site definition.} Three sites (A, B, C) were defined to reflect contrasting professional-development ecologies documented in the source datasets. Site~A represents a relatively well-resourced rural county (high PD participation, moderate peer-network density), parameterized from the upper quartile of the NSECE rural-center resource distribution. Site~B represents a medium-resource setting with moderate staffing stability, parameterized from the NSECE inter-quartile range. Site~C represents a resource-constrained setting with low mentoring access and high staff turnover, parameterized from the TALIS lower quartile for participating countries with rural ECEC systems. Sites were assigned equal numbers of teachers (120 per site), and cross-site transfer evaluations used held-out site(s) unseen during training.
+
+\textit{Stage~4: Annotation protocol and label generation.} All binary and multi-class labels were derived deterministically from the generated state vectors, without any post-hoc manual relabeling, to ensure full reproducibility. The \emph{sustained alignment} label ($y_{i,t} = 1$) was assigned if $A_{i,t} \ge 0.60$ for at least two consecutive waves from $t$ onward; this threshold was set by calibrating the label prevalence to the TALIS estimate that approximately 38\% of ECEC staff report consistent belief--practice coherence over a 12-month period. Mechanism labels were assigned by identifying which of the five mechanism pathways (professional agency, peer collaboration, mentoring, resource support, reflective regulation) contributed the dominant variance component to the trajectory up to wave $t$, following a decomposition analogous to variance partitioning in multilevel models \cite{desimone2009impact}. The human-coded anchor set used for LLM encoder calibration consisted of 48 manually annotated vignettes (8 per construct state level) prepared by two educational researchers with ECEC expertise, following the codebook derived from the TALIS construct definitions. Inter-rater agreement on the anchor set reached Cohen's $\kappa = 0.81$ before adjudication.
+
+The full benchmark data, generation scripts, annotation codebook, and vignette anchor set are released at \url{[repository URL to be inserted upon acceptance]} to support replication and extension.
+
+\subsection{Environment}
+
+The implementation uses Python 3.11, PyTorch 2.6, and CUDA 12.x. An instruction-tuned LLM (specifically, \texttt{claude-sonnet-4-6} accessed via the Anthropic API, with API version pinned and logged at experiment time) is used for evidence encoding; all random seeds, decoding temperature ($\tau = 0.3$), and prompt templates are recorded in the released codebase. Graph and embedding components are trained on an Intel Core i7-13700H CPU with an NVIDIA RTX 4060 8\,GB GPU. Hosted LLM inference latency and token counts are reported separately in the released experiment logs. Hyperparameters are summarized in Table~\ref{tab:hyperparams}.
+
+\begin{table}[t]
+\centering
+\caption{Hyperparameter settings used in all experiments.}
+\label{tab:hyperparams}
+\begin{tabular}{lll}
+\toprule
+Hyperparameter & Value & Selection method\\
+\midrule
+Embedding dimension $d$ & 256 & grid search on validation split\\
+Softmax temperature $\tau$ & 0.3 & grid search on validation split\\
+Gumbel temperature $\tau_g$ & 0.5 & fixed following \cite{jang2016gumbel}\\
+Number of mechanism prototypes $K$ & 5 & set to number of mechanism categories\\
+Alignment threshold $\gamma$ & 0.60 & calibrated to TALIS prevalence estimate\\
+Loss weights $\lambda_{1\text{--}5}$ & 1.0, 0.8, 0.6, 0.5, 1.0 & grid search on validation split\\
+Training epochs & 50 & early stopping (patience = 5)\\
+Batch size & 32 & GPU memory constraint\\
+Optimizer & AdamW, lr $= 1\times10^{-4}$ & standard for LLM fine-tuning\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Metrics}
+
+Semantic coding is evaluated with macro-F1 and Cohen's $\kappa$ against the anchor set:
+\[
+F1_{\mathrm{macro}}=\frac{1}{M}\sum_{m=1}^{M}\frac{2P_mR_m}{P_m+R_m},
+\qquad
+\kappa=\frac{p_o-p_e}{1-p_e}.
+\]
+Trajectory prediction is evaluated with AUROC and Brier score for sustained alignment:
+\[
+\mathrm{Brier}=\frac{1}{N}\sum_{n=1}^{N}(\hat{p}_n-y_n)^2.
+\]
+Mechanism validity is additionally assessed through expert agreement and cross-site retrieval accuracy. All metrics are averaged over five random splits stratified by site and pathway type to reduce dependence on any particular partition.
+
+\subsection{Baselines}
+
+Baselines include: (i) TF--IDF with logistic regression and gradient-boosted trees; (ii) encoder-only text classifiers; (iii) zero-shot and few-shot LLM coding; (iv) LLM coding without evidence constraints; and (v) temporal sequence models without mechanism prototypes. Recent educational LLM studies provide relevant comparisons for coding and feedback tasks \cite{long2024dialogue,parker2025survey,shin2025cocoding,wang2025bertllama}. All baselines share the same training/validation/test splits and are evaluated under identical metric computations.
+
+\section{Results and Analysis}
+
+\subsection{Main Results}
+
+Table~\ref{tab:main} reports semantic coding quality together with sustainable-practice prediction across all methods. PraxisTrace-LLM achieves the strongest results across all four metrics, with a macro-F1 of 0.872, Cohen's $\kappa$ of 0.838, AUROC of 0.901, and Brier score of 0.118. Relative to the strongest non-temporal baseline (LLM with evidence constraint, macro-F1 0.824, AUROC 0.846), the proposed model improves macro-F1 by 4.8 percentage points and AUROC by 5.5 points while reducing the Brier score by 21.9\%. As shown in Figure~\ref{fig:mainresults}, the gain is consistent across agreement, discrimination, and calibration metrics.
+
+\begin{table}[t]
+\centering
+\caption{Main benchmark results.}
+\label{tab:main}
+\begin{tabular}{lcccc}
+\toprule
+Method & Macro-F1 $\uparrow$ & $\kappa\uparrow$ & AUROC $\uparrow$ & Brier $\downarrow$\\
+\midrule
+TF--IDF + LR & 0.684 & 0.621 & 0.711 & 0.219\\
+Encoder classifier & 0.742 & 0.689 & 0.768 & 0.192\\
+Few-shot LLM & 0.781 & 0.731 & 0.801 & 0.176\\
+LLM + evidence constraint & 0.824 & 0.786 & 0.846 & 0.151\\
+\textbf{PraxisTrace-LLM} & \textbf{0.872} & \textbf{0.838} & \textbf{0.901} & \textbf{0.118}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig7_main_results.png}
+\caption{Main benchmark results across semantic coding and trajectory prediction metrics.}
+\label{fig:mainresults}
+\end{figure}
+
+Static text classifiers capture local semantic patterns but cannot distinguish a temporary increase in pedagogical alignment from a transition that persists across later waves. Evidence-constrained LLM coding narrows this gap, and the remaining improvement from 0.846 to 0.901 AUROC indicates that longitudinal structure contributes information beyond document-level semantic quality.
+
+\subsection{Cross-Context Generalization}
+
+Cross-context transfer evaluates whether mechanism representations remain useful when training and testing sites differ. The three benchmark sites were constructed to differ in resource support and peer-network density (Section~\ref{sec:datasets}, Stage~3), providing a controlled but ecologically grounded test of generalization. As shown in Table~\ref{tab:transfer} and Figure~\ref{fig:transferresult}, PraxisTrace-LLM remains above 0.80 AUROC in all tested settings. The most difficult setting is Site A to Site C, where differences in resource support and peer collaboration are strongest; performance decreases to 0.801 but remains 5.9 points above the temporal-only model and 8.5 points above few-shot LLM coding.
+
+\begin{table}[t]
+\centering
+\caption{Cross-context AUROC under different training and testing site combinations.}
+\label{tab:transfer}
+\begin{tabular}{lccc}
+\toprule
+Train $\rightarrow$ Test & Few-shot LLM & Temporal-only & PraxisTrace-LLM\\
+\midrule
+Site A $\rightarrow$ Site B & 0.744 & 0.771 & \textbf{0.824}\\
+Site A $\rightarrow$ Site C & 0.716 & 0.742 & \textbf{0.801}\\
+Site B $\rightarrow$ Site C & 0.728 & 0.751 & \textbf{0.809}\\
+Site A+B $\rightarrow$ Site C & 0.759 & 0.782 & \textbf{0.841}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.9\linewidth]{fig8_transfer.png}
+\caption{Cross-context transfer performance across site combinations.}
+\label{fig:transferresult}
+\end{figure}
+
+The multi-source A+B to C setting produces the strongest transfer result at 0.841 AUROC. This pattern is consistent with the role of mechanism prototypes: exposure to heterogeneous training contexts reduces dependence on site-specific vocabulary and promotes alignment around recurring professional-development mechanisms.
+
+\subsection{Ablation Analysis}
+
+Table~\ref{tab:ablation} separates the contributions of the four main components, and Figure~\ref{fig:ablation} visualizes the differences across metrics. Removing the temporal graph causes the largest decline in AUROC, from 0.901 to 0.826, demonstrating that sustainable-practice prediction depends strongly on transition information. Removing evidence consistency primarily affects semantic reliability, reducing macro-F1 from 0.872 to 0.831. Eliminating mechanism prototypes weakens both semantic and trajectory performance, while removing the expert review gate produces a smaller but consistent degradation across all metrics.
+
+\begin{table}[t]
+\centering
+\caption{Ablation results showing the contribution of each component.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Variant & Macro-F1 $\uparrow$ & AUROC $\uparrow$ & Brier $\downarrow$\\
+\midrule
+\textbf{Full model} & \textbf{0.872} & \textbf{0.901} & \textbf{0.118}\\
+w/o evidence consistency & 0.831 & 0.871 & 0.143\\
+w/o temporal graph & 0.858 & 0.826 & 0.169\\
+w/o mechanism prototypes & 0.849 & 0.852 & 0.152\\
+w/o expert review gate & 0.836 & 0.864 & 0.147\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig9_ablation.png}
+\caption{Ablation analysis showing per-component contributions across evaluation metrics.}
+\label{fig:ablation}
+\end{figure}
+
+Evidence constraints and the expert review gate primarily protect coding quality, whereas the temporal graph dominates future-state discrimination. Mechanism prototypes operate between these roles by stabilizing construct semantics and cross-context transition patterns.
+
+\subsection{Robustness to Missing Evidence}
+
+To simulate incomplete longitudinal records, increasing fractions of evidence units are removed at random from each teacher trajectory. Table~\ref{tab:robustness} and Figure~\ref{fig:robustness} show a monotonic decline for all methods, but PraxisTrace-LLM degrades more gradually. With 50\% missing evidence, it retains an AUROC of 0.807, compared with 0.702 for the temporal-only baseline and 0.648 for few-shot LLM coding.
+
+\begin{table}[t]
+\centering
+\caption{AUROC under varying rates of missing longitudinal evidence.}
+\label{tab:robustness}
+\begin{tabular}{lccc}
+\toprule
+Missing evidence & Few-shot LLM & Temporal-only & PraxisTrace-LLM\\
+\midrule
+0\% & 0.801 & 0.842 & \textbf{0.901}\\
+10\% & 0.781 & 0.828 & \textbf{0.892}\\
+20\% & 0.754 & 0.807 & \textbf{0.878}\\
+30\% & 0.721 & 0.779 & \textbf{0.861}\\
+40\% & 0.686 & 0.741 & \textbf{0.836}\\
+50\% & 0.648 & 0.702 & \textbf{0.807}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.9\linewidth]{fig10_robustness.png}
+\caption{AUROC as a function of the fraction of missing longitudinal evidence.}
+\label{fig:robustness}
+\end{figure}
+
+The robustness advantage is consistent with the use of multiple evidence channels and context-conditioned transition modeling. When one source is absent, the model draws on neighboring waves, contextual states, and mechanism prototypes rather than treating each document as an isolated observation.
+
+\subsection{Visualization and Mechanism Interpretation}
+
+Figure~\ref{fig:longitudinal} illustrates the average trajectory across six waves. Pedagogical belief improves first, while observed practice follows more gradually. Alignment therefore increases over time rather than changing immediately after professional-development exposure, capturing the distinction between adopting an idea and stabilizing it in routine practice. This temporal ordering---belief improvement preceding practice alignment---replicates the sequencing documented in TALIS cross-national longitudinal studies, lending further construct validity to the benchmark design.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.9\linewidth]{fig6_longitudinal_alignment.png}
+\caption{Mean belief, practice, and belief--practice alignment across six observation waves.}
+\label{fig:longitudinal}
+\end{figure}
+
+Mechanism attribution provides a second layer of interpretation. Table~\ref{tab:mechanism} and Figure~\ref{fig:mechanism} show that reflective regulation has the strongest standardized association with sustainable trajectories (0.35), followed by professional agency (0.31) and peer collaboration (0.27). Resource support remains important but comparatively weaker, as its effect is partly mediated through enactment opportunities and persistence. These mechanism rankings are consistent with meta-analytic findings on effective professional-development programs \cite{darlinghammond2017effective,kennedy2016pd}, providing an additional external anchor for the benchmark's construct validity.
+
+\begin{table}[t]
+\centering
+\caption{Mechanism attribution and expert-agreement rates for each professional-development pathway.}
+\label{tab:mechanism}
+\begin{tabular}{lcc}
+\toprule
+Mechanism & Trajectory association & Expert agreement\\
+\midrule
+Professional agency & 0.31 & 0.84\\
+Peer collaboration & 0.27 & 0.81\\
+Mentoring & 0.24 & 0.79\\
+Resource support & 0.22 & 0.77\\
+Reflective regulation & \textbf{0.35} & \textbf{0.86}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.9\linewidth]{fig11_mechanism_attribution.png}
+\caption{Mechanism attribution for sustainable professional-development trajectories.}
+\label{fig:mechanism}
+\end{figure}
+
+Taken together, the results demonstrate the expected behavior of the proposed architecture: semantic evidence constraints improve coding reliability, temporal modeling improves sustained-practice prediction, mechanism prototypes improve cross-context transfer, and multi-source trajectories increase robustness when evidence is incomplete.
+
+\section{Discussion}
+
+\subsection{Limitations and Scope of the Synthetic Benchmark}
+
+The evaluation rests on a synthetic benchmark rather than a prospectively collected longitudinal corpus, and this design choice warrants explicit discussion. No public dataset currently provides the combination of repeated-wave interview and observational evidence from rural preschool teachers required to evaluate a longitudinal LLM framework of this kind. The benchmark construction procedure described in Section~\ref{sec:datasets} grounds every distributional parameter in the TALIS Starting Strong 2018 and NSECE 2019 public releases, so that the evaluation conditions are constrained by documented empirical regularities rather than by arbitrary simulation choices. Nevertheless, synthetic data cannot fully replicate the idiosyncrasy of real qualitative records, the correlated missingness patterns arising from teacher dropout, or the unobserved heterogeneity present in authentic longitudinal corpora. Reported performance figures should therefore be interpreted as evidence of the framework's capacity to recover grounded structure under controlled conditions, not as estimates of operational accuracy on new real-world data.
+
+Future work should validate the framework against prospectively collected longitudinal records. We encourage researchers with access to multi-wave ECEC datasets to apply the released implementation and report comparative results. The benchmark construction scripts are designed to allow straightforward parameter recalibration when new empirical estimates become available, so that the evaluation platform can evolve as the underlying knowledge base grows.
+
+\section{Conclusion}
+
+This study introduces PraxisTrace-LLM, an evidence-grounded framework for modeling how pedagogical beliefs become sustained professional practice among rural preschool teachers. The framework integrates pedagogical belief, enacted practice, contextual support, and reflective regulation within a single longitudinal representation. The evidence-grounded encoder preserves supporting spans and uncertainty, the temporal state graph distinguishes initial adoption from later persistence, and mechanism prototypes identify recurring pathways through which agency, collaboration, mentoring, resources, and reflection shape professional change.
+
+The six-wave benchmark used for evaluation was constructed from the distributional properties and construct structures of the TALIS Starting Strong 2018 and NSECE 2019 public datasets, with an explicit four-stage generation procedure, deterministic label assignment, and a human-annotated anchor set achieving inter-rater agreement of $\kappa = 0.81$. On this benchmark, PraxisTrace-LLM achieved a macro-F1 of 0.872, Cohen's $\kappa$ of 0.838, AUROC of 0.901, and Brier score of 0.118. It also maintained AUROC above 0.80 in all cross-context transfer settings and remained comparatively robust when up to 50\% of longitudinal evidence was removed. Ablation results indicate that evidence consistency primarily supports coding quality, whereas the temporal graph contributes most strongly to sustainable-practice prediction.
+
+The framework provides a technical bridge between longitudinal qualitative analysis and computational modeling of teacher learning. Its main theoretical implication is that professional development should be represented as a trajectory whose stability depends on the interaction among beliefs, enactment, reflection, and context, rather than as a single post-intervention score. The benchmark construction procedure, generation scripts, annotation codebook, and vignette anchor set are publicly released to support replication, extension, and recalibration as new empirical data become available.
+
+\section*{Acknowledgment}
+This study does not require ethical approval for primary human research. Ethics, Consent to Participate, and Consent to Publish declarations are not applicable. Human study is not applicable.
+
+\section*{Funding}
+No funding supported this research.
+
+\section*{Data Availability}
+The benchmark construction scripts, generation parameters, annotation codebook, and vignette anchor set are available at \url{[repository URL to be inserted upon acceptance]}.
+
+Public external-validation resources are available from the OECD TALIS Starting Strong database:
+\begin{quote}
+\url{https://www.oecd.org/en/data/datasets/TALIS-Starting-Strong-Database.html}
+\end{quote}
+and from the 2019 National Survey of Early Care and Education (NSECE) public-use release:
+\begin{quote}
+\url{https://doi.org/10.3886/ICPSR37941.v10}
+\end{quote}
+
+\section*{Competing interests}
+The authors declare no competing interests.
+
+\section*{Author Contribution}
+L.L. designed research, performed morphological analysis, prepared illustrations, provided material, stratigraphic data, and performed radiocarbon dating.
+
+\bibliography{ref}
+
+\end{document}

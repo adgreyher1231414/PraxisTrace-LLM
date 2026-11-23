@@ -1,0 +1,23 @@
+{
+  "description": "Fresh results on independently generated synthetic data; NOT the original paper results",
+  "mode": "main",
+  "seed": 42,
+  "encoder": "offline",
+  "device": "cpu",
+  "test": {
+    "macro_f1": 0.3464447806354009,
+    "kappa": 0.0,
+    "auroc": 0.7863488717275797,
+    "brier": 0.24632416665554047,
+    "samples": 432,
+    "positive_rate": 0.5300925925925926
+  },
+  "baseline_static_lr": {
+    "macro_f1": 0.6828550759585242,
+    "kappa": 0.36750309921771473,
+    "auroc": 0.7100049476197646,
+    "brier": 0.22655984060415563,
+    "samples": 432,
+    "positive_rate": 0.5300925925925926
+  }
+}
